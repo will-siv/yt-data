@@ -6,14 +6,35 @@ import googleapiclient.errors
 
 scopes = ["https://www.googleapis.com/auth/youtube.readonly"]
 
-'''
-Returns dictionary as follows:
-{
-    title:string
-    videos:string[] #IDs
-}
+# PTmmMssS to seconds
+def durationCalc(time):
+    try:
+        parts = time.strip("PT").split("M")
+        minutes = int(parts[0])
+        if len(parts) == 1:
+            seconds = int(parts[1].strip("S"))
+        else:
+            seconds = 0 
+        return minutes*60 + seconds
+    except ValueError:
+        print(f"value {time} is not compatible and probably not part of a real match")
+        return 0
 
-'''
+def getVideoInfo(youtube, videoId):
+
+    request = youtube.videos().list(
+        part="snippet,contentDetails",
+        id=videoId
+    )
+
+    response = request.execute()['items'][0]
+    return {
+        'title': response['snippet']['title'],
+        'duration': durationCalc(response['contentDetails']['duration']),
+        'uploadDate': response['snippet']['publishedAt']
+    }
+
+
 def getUploadsFromPlaylist(youtube, playlistId, title):
     ret = {
         'title': title,
@@ -31,7 +52,9 @@ def getUploadsFromPlaylist(youtube, playlistId, title):
 
         for playlistItem in response['items']:
             ret['videos'].append(
-                playlistItem['snippet']['resourceId']['videoId']
+                getVideoInfo(youtube,
+                    playlistItem['snippet']['resourceId']['videoId']
+                )
             )
 
         try:
@@ -40,7 +63,7 @@ def getUploadsFromPlaylist(youtube, playlistId, title):
             nextPageToken = None
     return ret
 
-def getUploadsSortedByPlaylist(youtube):
+def getAllPlaylists(youtube):
     ret = []
 
     nextPageToken = ''
@@ -55,7 +78,7 @@ def getUploadsSortedByPlaylist(youtube):
             playlistId = playlistItem['id']
             title = playlistItem['snippet']['title']
             ret.append(
-            getUploadsFromPlaylist(youtube, playlistId, title)
+                getUploadsFromPlaylist(youtube, playlistId, title)
             )
 
         try:
@@ -63,9 +86,6 @@ def getUploadsSortedByPlaylist(youtube):
         except KeyError:
             nextPageToken = None
     return ret
-
-
-
 
 def getYoutube():
     api_service_name = "youtube"
@@ -78,16 +98,3 @@ def getYoutube():
     credentials = flow.run_local_server()
     return googleapiclient.discovery.build(
         api_service_name, api_version, credentials=credentials)
-    
-
-def main():
-    youtube = getYoutube()
-    
-    uploadData = getUploadsSortedByPlaylist(youtube=youtube)
-    
-
-    return youtube
-
-
-if __name__ == "__main__":
-    main()
