@@ -6,35 +6,68 @@ import googleapiclient.errors
 
 scopes = ["https://www.googleapis.com/auth/youtube.readonly"]
 
-response = None
+'''
+Returns dictionary as follows:
+{
+    title:string
+    videos:string[] #IDs
+}
 
-def getUploads(youtube):
-    request = youtube.channels().list(
-        part="contentDetails",
-        mine=True
-    )
-    results = request.execute()
+'''
+def getUploadsFromPlaylist(youtube, playlistId, title):
+    ret = {
+        'title': title,
+        'videos': []
+    }
 
-    for item in results["items"]:
-        playlistId = item['contentDetails']['relatedPlaylists']['uploads']
-        nextPageToken = ''
-        while nextPageToken != None:
-            playlistResponse = youtube.playlistItems().list(
-                part='contentDetails, snippet',
-                playlistId=playlistId,
-                pageToken=nextPageToken
+    nextPageToken = ''
+    while nextPageToken != None:
+        request = youtube.playlistItems().list(
+            part="snippet",
+            playlistId=playlistId,
+            pageToken=nextPageToken
+        )
+        response = request.execute()
+
+        for playlistItem in response['items']:
+            ret['videos'].append(
+                playlistItem['snippet']['resourceId']['videoId']
             )
-            response = playlistResponse.execute()
-            print(playlistResponse)
 
-            for playlistItem in response['items']:
-                print('[%s] Title: %s'%(
-                    playlistItem['snippet']['resourceId']['videoId'],
-                    playlistItem['snippet']['title']))
-            nextPageToken = response['nextPageToken']
+        try:
+            nextPageToken = response["nextPageToken"]
+        except KeyError:
+            nextPageToken = None
+    return ret
 
-def main():
-    channel_id = "UCgyGDGx1ynj7Wtx7DVW-GGQ"
+def getUploadsSortedByPlaylist(youtube):
+    ret = []
+
+    nextPageToken = ''
+    while nextPageToken != None:
+        request = youtube.playlists().list(
+            part="contentDetails, snippet",
+            mine=True,
+            pageToken=nextPageToken
+        )
+        playlistResults = request.execute()
+        for playlistItem in playlistResults['items']:
+            playlistId = playlistItem['id']
+            title = playlistItem['snippet']['title']
+            ret.append(
+            getUploadsFromPlaylist(youtube, playlistId, title)
+            )
+
+        try:
+            nextPageToken = playlistResults['nextPageToken']
+        except KeyError:
+            nextPageToken = None
+    return ret
+
+
+
+
+def getYoutube():
     api_service_name = "youtube"
     api_version = "v3"
     client_secrets_file = "secret.json"
@@ -43,15 +76,15 @@ def main():
     flow = google_auth_oauthlib.flow.InstalledAppFlow.from_client_secrets_file(
         client_secrets_file, scopes)
     credentials = flow.run_local_server()
-    youtube = googleapiclient.discovery.build(
+    return googleapiclient.discovery.build(
         api_service_name, api_version, credentials=credentials)
-
-    request = youtube.channels().list(
-        part="contentDetails",
-        mine=True
-    )
     
-    getUploads(youtube=youtube)
+
+def main():
+    youtube = getYoutube()
+    
+    uploadData = getUploadsSortedByPlaylist(youtube=youtube)
+    
 
     return youtube
 
