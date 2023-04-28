@@ -21,13 +21,14 @@ def durationCalc(time):
 def getVideoInfo(youtube, videoId):
 
     request = youtube.videos().list(
-        part="snippet,contentDetails",
+        part="snippet,contentDetails,fileDetails",
         id=videoId
     )
 
     response = request.execute()['items'][0]
     return {
         'title': response['snippet']['title'],
+        'fileName' : response['fileDetails']['fileName'],
         'duration': durationCalc(response['contentDetails']['duration']),
         'uploadDate': response['snippet']['publishedAt']
     }
@@ -62,7 +63,18 @@ def getUploadsFromPlaylist(youtube, playlistId, title):
     return ret
 
 def getAllPlaylists(youtube):
-    ret = []
+    ret = {
+        'channel': '',
+        'playlists': []
+    }
+    request = youtube.channels().list(
+        part="snippet",
+        mine=True
+    )
+
+    channelResp = request.execute()
+
+    ret['channel'] = channelResp['items'][0]['snippet']['title']
 
     nextPageToken = ''
     while nextPageToken != None:
@@ -75,7 +87,7 @@ def getAllPlaylists(youtube):
         for playlistItem in playlistResults['items']:
             playlistId = playlistItem['id']
             title = playlistItem['snippet']['title']
-            ret.append(
+            ret['playlists'].append(
                 getUploadsFromPlaylist(youtube, playlistId, title)
             )
 
