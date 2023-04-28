@@ -24,18 +24,21 @@ def getMax(data):
                 newVid = video
     return newVid
 
-def main():
-    name = input("name of data file (enter to query youtube):")
+def main(youtube):
+    name = input("name of data file (enter to query youtube): ")
     if name == "":
         name = "data.json"
-        youtube = yt_data.getYoutube()
+        if youtube == None:
+            youtube = yt_data.getYoutube()
         data = yt_data.getAllPlaylists(youtube)
         with open(name, 'w') as w:
-            w.write(str(data))
+            json.dump(data, w)
 
+    data = {}
     with open(name, 'r') as r:
         data = json.loads(r.read())
 
+# remove entries based on requirements
     i = 0
     for playlist in data['playlists']:
         if checkFlags(playlist):
@@ -43,6 +46,9 @@ def main():
             continue
         i += 1
 
+# returning for working in a live environment
+    return data
+
 
 if __name__ == "__main__":
-    main()
+    main(None)
