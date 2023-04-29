@@ -9,7 +9,7 @@ def durationCalc(time):
     try:
         parts = time.strip("PT").split("M")
         minutes = int(parts[0])
-        if len(parts) == 1:
+        if len(parts) == 2:
             seconds = int(parts[1].strip("S"))
         else:
             seconds = 0 
