@@ -14,15 +14,41 @@ def checkFlags(p):
         return True
     return False
 
-def getMax(data):
+def getMaxVid(data):
     dur_max = 0
-    newVid = ''
+    newVid = None
     for playlist in data['playlists']:
         for video in playlist['videos']:
             if video['duration'] > dur_max:
                 dur_max = video['duration']
                 newVid = video
     return newVid
+
+def getMaxTournament(data):
+    dur_max = 0
+    newTournament = None
+    for playlist in data['playlists']:
+        length = 0
+        for video in playlist['videos']:
+            length += video['duration']
+        if length > dur_max:
+            newTournament = playlist
+            dur_max = length
+    return newTournament
+
+def audioDuration(data, divisor):
+    ret = {
+        'title':'',
+        'durations':[]
+    }
+
+    for playlist in data['playlists']:
+        toAdd = []
+        ret['title'] = playlist['title']
+        for video in playlist['videos']:
+            toAdd.append(video['duration'] / divisor)
+        ret['durations'].append(toAdd)
+    return ret
 
 def main(youtube):
     name = input("name of data file (enter to query youtube): ")
