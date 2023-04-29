@@ -71,6 +71,18 @@ def main(youtube):
             data['playlists'].pop(i)
             continue
         i += 1
+    
+# manual edit to fix bug in original data
+# this is bc the first two playlists are created out of order
+# first two playlists are last two in this set
+    temp = data['playlists'][-2]
+    data['playlists'][-2] = data['playlists'][-1]
+    data['playlists'][-1] = temp
+
+# get durations for every game for every tournament
+    audioData = audioDuration(data, 120)
+    print(audioData)
+#printing because i am putting this in audacity i give up
 
 # returning for working in a live environment
     return data
