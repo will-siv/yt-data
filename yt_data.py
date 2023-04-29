@@ -8,6 +8,8 @@ scopes = ["https://www.googleapis.com/auth/youtube.readonly"]
 def durationCalc(time):
     try:
         parts = time.strip("PT").split("M")
+        if parts[1] == '':
+            parts.pop(1) #im so tired
         minutes = int(parts[0])
         if len(parts) == 2:
             seconds = int(parts[1].strip("S"))
