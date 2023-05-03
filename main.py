@@ -1,16 +1,23 @@
 import yt_data
 import json
 
+import tones
+import tones.mixer
+
 # function returns True for flag raised
 def checkFlags(p):
     # a playlist is not included in the data set if:
     # the length of the playlist is under 10 videos (insufficient) OR
-    # "doubles" is in the playlist title
+    # "doubles" is in the playlist title OR
+    # a video in the playlist has a duration of 0
     if len(p['videos']) < 10:
         print(f"Length of playlist {p['title']} is under 10 videos.")
         return True
     if "doubles" in p['title'].lower():
         print(f"'Doubles' found in playlist {p['title']}.")
+        return True
+    if p['videos'][0]['duration'] == 0:
+        print(f"Playlist {p['title']} has video with zero duration.")
         return True
     return False
 
@@ -37,21 +44,46 @@ def getMaxTournament(data):
     return newTournament
 
 def audioDuration(data, divisor):
-    ret = {
-        'title':'',
-        'durations':[]
-    }
-
+    ret = []
     for playlist in data['playlists']:
-        toAdd = []
-        ret['title'] = playlist['title']
+        toAdd = {
+            'title': playlist['title'],
+            'durations': []
+        }
         for video in playlist['videos']:
-            toAdd.append(video['duration'] / divisor)
-        ret['durations'].append(toAdd)
+            dur = video['duration'] / divisor
+            toAdd['durations'].append(round(dur, 3))
+        ret.append(toAdd)
     return ret
+
+def createWav(data):
+    # audio data is an array
+    notes = "cdega" #chromatic scale
+    octave = 3
+
+    mixer = tones.mixer.Mixer()
+    mixer.create_track("track")
+    title = data['title']
+    i=0
+    for dur in data['durations']:
+        mixer.add_note(
+            'track',
+            duration=dur,
+            amplitude=0.25,
+            note=notes[i],
+            octave=octave,
+            attack=0.25,
+            decay=0.25
+        )
+        i += 1
+        if i == 5:
+            i = 0
+            octave += 1
+    mixer.write_wav(f'wav/{title}.wav')
 
 def main(youtube):
     name = input("name of data file (enter to query youtube): ")
+    wav = input("create new wav files? (y/n): ")
     if name == "":
         name = "data.json"
         if youtube == None:
@@ -68,21 +100,23 @@ def main(youtube):
     i = 0
     for playlist in data['playlists']:
         if checkFlags(playlist):
-            data['playlists'].pop(i)
-            continue
+            print(data['playlists'].pop(i)['title'] + " dropped.")
         i += 1
     
 # manual edit to fix bug in original data
 # this is bc the first two playlists are created out of order
 # first two playlists are last two in this set
-    temp = data['playlists'][-2]
-    data['playlists'][-2] = data['playlists'][-1]
-    data['playlists'][-1] = temp
+    if data['channel'] == "Highlander Smash":
+        temp = data['playlists'][-2]
+        data['playlists'][-2] = data['playlists'][-1]
+        data['playlists'][-1] = temp
 
 # get durations for every game for every tournament
     audioData = audioDuration(data, 120)
-    print(audioData)
-#printing because i am putting this in audacity i give up
+    for aData in audioData:
+        print(aData)
+        if wav.lower() == 'y':
+            createWav(aData)
 
 # returning for working in a live environment
     return data

@@ -1,5 +1,7 @@
 __pycache__
 key
 secret.json
-csv
 .*
+wav/hlm
+project*
+
